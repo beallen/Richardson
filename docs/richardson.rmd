@@ -1,0 +1,88 @@
+---
+title: "Visualization of Canopy Cover data in the Richardson area"
+author: "Brandon Allen and Marcus Becker"
+date: "Updated: May 16, 2022"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '4'
+  bookdown::html_document2:
+    highlight: zenburn
+    number_sections: yes
+    self_contained: yes
+    theme: paper
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+    toc_depth: '4'
+always_allow_html: yes
+urlcolor: blue
+---
+
+<style>
+    body .main-container {
+        max-width: 1350px;
+    }
+</style>
+
+```{r setup, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Load libraries
+library(tidyverse)
+library(crosstalk) # Special branch of GH crosstalk repo required (filter-select-default)
+library(knitr)
+library(here)
+library(sf)
+library(raster)
+library(leaflet)
+library(leaflet.extras)
+library(RColorBrewer)
+#library(DT)
+library(grid)
+library(purrr)
+
+# Set global options for figures 
+knitr::opts_chunk$set(out.width='70%', fig.align = "center")
+select <- dplyr::select
+
+```
+
+```{r canopy-cover, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE, out.width="100%", fig.height=9}
+
+# Load raster
+# Note, my S drive is based on the network path. Might mess up our code.
+ras_prefhab <- raster(here("//142.244.87.176/abmisc/github-repos-data/Richardson/data/chm_e_0_233_B1.tif"))
+
+# Define palette
+pal_rev <- rev(brewer.pal(9, "RdBu"))
+pal1 <- colorNumeric(palette = pal_rev, 
+                         domain = values(ras_prefhab), 
+                         na.color = "transparent")
+
+# EPSG:3785
+crs(ras_prefhab) = CRS("+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+# Leaflet map
+map_prefhab <- leaflet() %>%
+  addTiles() %>%
+  addProviderTiles("Stamen.Terrain") %>%
+  addFullscreenControl() %>%
+  addResetMapButton() %>%
+  addScaleBar(position = "bottomleft",
+              options = scaleBarOptions(imperial = FALSE)) %>%
+  setView(lng = -111.64, lat = 56.31, zoom = 7) %>%
+  
+  # Add raster layer
+  addRasterImage(ras_prefhab, colors = pal1, opacity = 1,
+                 group = "Canopy height?", maxBytes = 5 * 1024 * 1024) %>%
+  
+  # Add legend
+  addLegend(pal = pal1, values = values(ras_prefhab), opacity = 1,  
+            title = "Canopy height?", position = "bottomright",
+            group = "Canopy height?")
+
+map_prefhab
+```
